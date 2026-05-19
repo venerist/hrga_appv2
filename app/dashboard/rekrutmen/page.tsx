@@ -5,6 +5,7 @@ import { MetricCard, PageHeader, StatusBadge, EmptyState, LoadingSpinner } from 
 import type { Rekrutmen, RekrutmenStatus } from '@/types/recruitment.types'
 import { REKRUTMEN_STATUS_OPTIONS, REKRUTMEN_STATUS_BADGE } from '@/types/recruitment.types'
 import { Plus, X, Trash2 } from 'lucide-react'
+import { ExportExcelButton } from '@/components/ui/ExportExcelButton'
 
 export default function RekrutmenPage() {
   const [rows, setRows] = useState<Rekrutmen[]>([])
@@ -28,7 +29,12 @@ export default function RekrutmenPage() {
   return (
     <div className="space-y-6">
       <PageHeader icon="🎯" title="Rekrutmen" subtitle="Pipeline kandidat & status seleksi"
-        action={<button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-semibold backdrop-blur transition-all cursor-pointer">{showForm ? <><X size={15} /> Tutup</> : <><Plus size={15} /> Tambah</>}</button>} />
+        action={
+          <div className="flex items-center gap-2">
+            <ExportExcelButton data={rows} filename="Laporan_Rekrutmen_Kandidat" sheetName="Rekrutmen" className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur" />
+            <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-semibold backdrop-blur transition-all cursor-pointer">{showForm ? <><X size={15} /> Tutup</> : <><Plus size={15} /> Tambah</>}</button>
+          </div>
+        } />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <MetricCard label="Total Kandidat" value={stats.total} icon="👥" />

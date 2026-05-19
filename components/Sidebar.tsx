@@ -18,11 +18,9 @@ const NAV: NavItem[] = [
   { href: '/dashboard',            icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/dashboard/attendance', icon: ClipboardList,   label: 'Attendance Management' },
   { href: '/dashboard/cuti',       icon: Calendar,        label: 'Leave Management' },
-  { href: '/dashboard/payroll',    icon: DollarSign,      label: 'Payroll Automation' },
   { href: '/dashboard/rekrutmen',  icon: Target,          label: 'Recruitment' },
   { href: '/dashboard/kpi',        icon: Star,            label: 'KPI' },
   { href: '/dashboard/ga',         icon: Wrench,          label: 'General Affairs' },
-  { href: '/dashboard/analytics',  icon: BarChart3,       label: 'Analytics' },
   { href: '/dashboard/settings',   icon: Settings,        label: 'Settings' },
 ]
 
@@ -50,6 +48,8 @@ export default function Sidebar() {
   async function logout() {
     sessionStorage.clear()
     document.cookie = "hrga_legacy_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;"
+    const { useAttendanceStore } = await import('@/store/attendance.store')
+    useAttendanceStore.getState().clearData()
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/login')

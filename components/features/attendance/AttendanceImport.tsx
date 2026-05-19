@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useAttendanceStore } from '@/store/attendance.store'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,7 +15,7 @@ import { attendanceReportService } from '@/services/attendance/attendance-report
 import { nationalHolidayService } from '@/services/attendance/national-holiday.service'
 import { toast } from '@/lib/toast' 
 import { Upload, FileDown, CheckCircle2, AlertCircle, Calendar, Info } from 'lucide-react'
-import * as XLSX from 'xlsx'
+import * as XLSX from 'xlsx-js-style'
 
 const MONTHS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -27,10 +28,12 @@ export default function AttendanceImport() {
   const [selectedMonth, setSelectedMonth] = useState<string>(String(new Date().getMonth() + 1))
   const [selectedYear, setSelectedYear] = useState<string>(String(new Date().getFullYear()))
   const [holidays, setHolidays] = useState<any[]>([])
-  const [file, setFile] = useState<File | null>(null)
+  const { 
+    file, previewData, importResult, 
+    setUploadData, setImportResult, clearUploadData 
+  } = useAttendanceStore()
+  
   const [isProcessing, setIsProcessing] = useState(false)
-  const [importResult, setImportResult] = useState<any>(null)
-  const [previewData, setPreviewData] = useState<any[]>([])
 
   useEffect(() => {
     loadHolidays()
@@ -48,17 +51,16 @@ export default function AttendanceImport() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0]
-      setFile(selectedFile)
       generatePreview(selectedFile)
     }
   }
 
-  const generatePreview = async (file: File) => {
-    const buffer = await file.arrayBuffer()
+  const generatePreview = async (selectedFile: File) => {
+    const buffer = await selectedFile.arrayBuffer()
     const workbook = XLSX.read(buffer)
     const sheet = workbook.Sheets[workbook.SheetNames[0]]
     const data = XLSX.utils.sheet_to_json(sheet).slice(0, 5) // Preview 5 rows
-    setPreviewData(data)
+    setUploadData(selectedFile, data)
   }
 
   const handleImport = async () => {
@@ -73,6 +75,7 @@ export default function AttendanceImport() {
         null // User ID from auth would go here
       )
       setImportResult(result)
+      clearUploadData() // Clear state on successful import
       toast.success('Import Berhasil!')
     } catch (error: any) {
       toast.error(`Import Gagal: ${error.message}`)

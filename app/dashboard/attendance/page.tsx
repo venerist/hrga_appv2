@@ -1,6 +1,6 @@
 'use client'
-import { useState, useCallback, useRef } from 'react'
-import * as XLSX from 'xlsx'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import * as XLSX from 'xlsx-js-style'
 import { attendanceService } from '@/services/attendance.service'
 import { MetricCard, PageHeader, StatusBadge, EmptyState } from '@/components/ui'
 import type { Absensi, RawFingerprintRecord } from '@/types/attendance.types'
@@ -24,6 +24,23 @@ export default function AttendancePage() {
   const [periode, setPeriode] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
+  // 1 & 2. Load cached data from sessionStorage on mount
+  useEffect(() => {
+    const cached = sessionStorage.getItem('cached_attendance_data')
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached)
+        if (parsed && parsed.data) {
+          setData(parsed.data)
+          setPeriode(parsed.periode || '')
+          setTap1Info(parsed.tap1Info || { count: 0, pct: 0 })
+        }
+      } catch (e) {
+        console.error('Failed to parse cached attendance data', e)
+      }
+    }
+  }, [])
+
   const processFile = useCallback(async (file: File) => {
     setUploading(true); setSaved(false)
     try {
@@ -31,15 +48,30 @@ export default function AttendancePage() {
       const wb = XLSX.read(buf, { type: 'array', cellDates: true })
       const raw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { raw: false }) as RawFingerprintRecord[]
       const processed = attendanceService.processFingerprint(raw)
+      const newPeriode = processed.length > 0 ? processed[0].periode : ''
+      const newTap1Info = attendanceService.calculateTap1xStats(processed)
+      
       setData(processed)
-      setTap1Info(attendanceService.calculateTap1xStats(processed))
-      if (processed.length > 0) setPeriode(processed[0].periode)
+      setTap1Info(newTap1Info)
+      setPeriode(newPeriode)
+
+      // 1. Save to sessionStorage as cache
+      sessionStorage.setItem('cached_attendance_data', JSON.stringify({
+        data: processed,
+        periode: newPeriode,
+        tap1Info: newTap1Info
+      }))
     } finally { setUploading(false) }
   }, [])
 
   async function saveToSupabase() {
     setSaving(true)
-    try { await attendanceService.saveToDatabase(data, periode); setSaved(true) }
+    try { 
+      await attendanceService.saveToDatabase(data, periode); 
+      setSaved(true);
+      // 3. Clear cache when data is successfully saved
+      sessionStorage.removeItem('cached_attendance_data')
+    }
     catch (e: any) { alert('Gagal simpan: ' + e.message) }
     finally { setSaving(false) }
   }
@@ -65,13 +97,41 @@ export default function AttendancePage() {
     return d.toLocaleDateString('id-ID', { weekday: 'long' })
   }
 
+  function applyHeaderStyle(ws: any, dataLength: number) {
+    if (dataLength === 0) return
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
+    const headerStyle = {
+      font: { bold: true, color: { rgb: "FFFFFF" } },
+      fill: { fgColor: { rgb: "F97316" } }, // Orange-500
+      alignment: { horizontal: "center", vertical: "center" },
+      border: { top: { style: 'thin', color: { rgb: 'CCCCCC' } }, bottom: { style: 'thin', color: { rgb: 'CCCCCC' } }, left: { style: 'thin', color: { rgb: 'CCCCCC' } }, right: { style: 'thin', color: { rgb: 'CCCCCC' } } }
+    }
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C })
+      if (!ws[cellAddress]) continue
+      ws[cellAddress].s = headerStyle
+    }
+  }
+
+  function autoWidthCols(data: any[]) {
+    if (data.length === 0) return []
+    return Object.keys(data[0]).map(key => {
+      let maxLength = key.length
+      data.forEach(row => {
+        const val = row[key] ? String(row[key]) : ''
+        if (val.length > maxLength) maxLength = val.length
+      })
+      return { wch: Math.min(maxLength + 2, 50) }
+    })
+  }
+
   function downloadExcel() {
     try {
       const JAM_MASUK_NORMAL = '08:00'
       const wb = XLSX.utils.book_new()
       const totalHariKerja = new Set(df.map(r => r.tanggal)).size
 
-      // === Sheet 1: Rekap Ringkasan ===
+      // === Sheet 1: Ringkasan ===
       const rekapRows = rekap.map((r, i) => ({
         'No': i + 1,
         'NIK': df.find(d => d.nama === r.nama)?.no_id ?? '-',
@@ -87,16 +147,51 @@ export default function AttendancePage() {
         'Persentase Kehadiran': `${r.pct_kehadiran}%`,
       }))
       const wsRekap = XLSX.utils.json_to_sheet(rekapRows)
-      wsRekap['!cols'] = [
-        { wch: 5 }, { wch: 15 }, { wch: 25 }, { wch: 18 }, { wch: 18 },
-        { wch: 14 }, { wch: 12 }, { wch: 15 }, { wch: 14 }, { wch: 18 }, { wch: 20 }, { wch: 18 },
-      ]
-      wsRekap['!freeze'] = { xSplit: 0, ySplit: 1 }
-      XLSX.utils.book_append_sheet(wb, wsRekap, 'Rekap Ringkasan')
+      wsRekap['!cols'] = autoWidthCols(rekapRows)
+      applyHeaderStyle(wsRekap, rekapRows.length)
+      XLSX.utils.book_append_sheet(wb, wsRekap, 'Ringkasan')
 
-      // === Sheet 2: Detail Keterlambatan ===
+      // === Sheet 2: Terlambat ===
       const lateRows = df
         .filter(r => r.menit_terlambat > 0)
+        .sort((a, b) => b.menit_terlambat - a.menit_terlambat)
+        .map((r, i) => ({
+          'No': i + 1,
+          'Tanggal': formatTanggalID(r.tanggal),
+          'Hari': getHariID(r.tanggal),
+          'NIK': r.no_id,
+          'Nama': r.nama,
+          'Divisi': r.departemen,
+          'Jam Masuk Normal': JAM_MASUK_NORMAL,
+          'Jam Scan Masuk': r.jam_masuk_str,
+          'Total Menit Terlambat': r.menit_terlambat,
+        }))
+      const lateData = lateRows.length > 0 ? lateRows : [{ 'Info': 'Tidak ada data terlambat' }]
+      const wsLate = XLSX.utils.json_to_sheet(lateData)
+      wsLate['!cols'] = autoWidthCols(lateData)
+      applyHeaderStyle(wsLate, lateData.length)
+      XLSX.utils.book_append_sheet(wb, wsLate, 'Terlambat')
+
+      // === Sheet 3: Tap 1x ===
+      const tap1Rows = tap1Data.map((r, i) => ({
+        'No': i + 1,
+        'Tanggal': formatTanggalID(r.tanggal),
+        'Hari': getHariID(r.tanggal),
+        'NIK': r.no_id,
+        'Nama': r.nama,
+        'Divisi': r.departemen,
+        'Jam Scan': r.jam_masuk_str || r.jam_keluar_str,
+        'Tipe': r.jam_masuk_str ? 'Hanya Masuk' : 'Hanya Keluar',
+      }))
+      const tap1Export = tap1Rows.length > 0 ? tap1Rows : [{ 'Info': 'Tidak ada data Tap 1x' }]
+      const wsTap1 = XLSX.utils.json_to_sheet(tap1Export)
+      wsTap1['!cols'] = autoWidthCols(tap1Export)
+      applyHeaderStyle(wsTap1, tap1Export.length)
+      XLSX.utils.book_append_sheet(wb, wsTap1, 'Tap 1x')
+
+      // === Sheet 4: Ketidakhadiran ===
+      const absentRows = df
+        .filter(r => r.status === 'Absent')
         .sort((a, b) => a.tanggal.localeCompare(b.tanggal))
         .map((r, i) => ({
           'No': i + 1,
@@ -105,81 +200,15 @@ export default function AttendancePage() {
           'NIK': r.no_id,
           'Nama': r.nama,
           'Divisi': r.departemen,
-          'Jabatan': '-',
-          'Jam Masuk Normal': JAM_MASUK_NORMAL,
-          'Jam Scan Masuk': r.jam_masuk_str,
-          'Durasi Keterlambatan': formatDurasi(r.menit_terlambat),
-          'Total Menit Terlambat': r.menit_terlambat,
-          'Status': r.status,
+          'Status': 'Tanpa Keterangan',
         }))
-      const wsLate = XLSX.utils.json_to_sheet(lateRows)
-      wsLate['!cols'] = [
-        { wch: 5 }, { wch: 14 }, { wch: 10 }, { wch: 15 }, { wch: 25 },
-        { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 22 }, { wch: 18 }, { wch: 14 },
-      ]
-      wsLate['!freeze'] = { xSplit: 0, ySplit: 1 }
-      XLSX.utils.book_append_sheet(wb, wsLate, 'Detail Keterlambatan')
+      const absentData = absentRows.length > 0 ? absentRows : [{ 'Info': 'Tidak ada data ketidakhadiran' }]
+      const wsAbsent = XLSX.utils.json_to_sheet(absentData)
+      wsAbsent['!cols'] = autoWidthCols(absentData)
+      applyHeaderStyle(wsAbsent, absentData.length)
+      XLSX.utils.book_append_sheet(wb, wsAbsent, 'Ketidakhadiran')
 
-      // === Sheet 3: Detail Absensi Harian ===
-      const dailyRows = df
-        .sort((a, b) => a.tanggal.localeCompare(b.tanggal) || a.nama.localeCompare(b.nama))
-        .map((r, i) => {
-          const statusKehadiran = r.status === 'Absent' ? 'Tidak Hadir' : 'Hadir'
-          const statusTerlambat = r.menit_terlambat > 0 ? 'Terlambat' : 'Tepat Waktu'
-          let keterangan = ''
-          if (r.jml_tap === 1) keterangan = 'Hanya 1x tap'
-          if (r.menit_terlambat > 30) keterangan = 'Terlambat signifikan'
-          return {
-            'No': i + 1,
-            'Tanggal': formatTanggalID(r.tanggal),
-            'Hari': getHariID(r.tanggal),
-            'NIK': r.no_id,
-            'Nama': r.nama,
-            'Divisi': r.departemen,
-            'Jabatan': '-',
-            'Jam Scan Pertama': r.jam_masuk_str,
-            'Jam Scan Terakhir': r.jam_keluar_str,
-            'Status Kehadiran': statusKehadiran,
-            'Status Keterlambatan': statusTerlambat,
-            'Menit Terlambat': r.menit_terlambat,
-            'Keterangan': keterangan,
-          }
-        })
-      const wsDaily = XLSX.utils.json_to_sheet(dailyRows)
-      wsDaily['!cols'] = [
-        { wch: 5 }, { wch: 14 }, { wch: 10 }, { wch: 15 }, { wch: 25 },
-        { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 18 }, { wch: 16 },
-        { wch: 18 }, { wch: 15 }, { wch: 22 },
-      ]
-      wsDaily['!freeze'] = { xSplit: 0, ySplit: 1 }
-      XLSX.utils.book_append_sheet(wb, wsDaily, 'Detail Absensi Harian')
-
-      // === Sheet 4: Matriks Kehadiran ===
-      const allDates = Array.from(new Set(df.map(r => r.tanggal))).sort()
-      const allNames = Array.from(new Set(df.map(r => r.nama))).sort()
-      const matrixData: Record<string, string>[] = allNames.map(nama => {
-        const row: Record<string, string> = { 'Nama Karyawan': nama }
-        for (const tgl of allDates) {
-          const rec = df.find(r => r.nama === nama && r.tanggal === tgl)
-          const colLabel = tgl.slice(5) // MM-DD
-          if (!rec) {
-            row[colLabel] = 'A'
-          } else if (rec.menit_terlambat > 0) {
-            row[colLabel] = 'T'
-          } else {
-            row[colLabel] = 'H'
-          }
-        }
-        return row
-      })
-      const wsMatrix = XLSX.utils.json_to_sheet(matrixData)
-      const matCols: XLSX.ColInfo[] = [{ wch: 25 }]
-      for (let i = 0; i < allDates.length; i++) matCols.push({ wch: 6 })
-      wsMatrix['!cols'] = matCols
-      wsMatrix['!freeze'] = { xSplit: 1, ySplit: 1 }
-      XLSX.utils.book_append_sheet(wb, wsMatrix, 'Matriks Kehadiran')
-
-      XLSX.writeFile(wb, `Rekap_Absensi_${periode || 'Export'}.xlsx`)
+      XLSX.writeFile(wb, `Laporan_Absensi_${periode || 'Export'}.xlsx`)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Gagal mengekspor Excel'
       toast.error(msg)

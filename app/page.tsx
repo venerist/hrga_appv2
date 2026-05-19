@@ -138,11 +138,9 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <FeatureCard icon={<Fingerprint size={24} />} title="Biometric & GPS Tracking" desc="Seamless attendance verification via mobile GPS or integrated fingerprint machines." color="primary" />
-            <FeatureCard icon={<BarChart3 size={24} />} title="Automated Payroll" desc="Tax calculations, overtime, and deductions processed accurately with one click." color="secondary" />
             <FeatureCard icon={<Users size={24} />} title="Talent Acquisition" desc="Visual recruitment pipelines from sourcing to automated onboarding sequences." color="accent" />
             <FeatureCard icon={<Clock size={24} />} title="Leave & Absence" desc="Self-service portal for leave requests with multi-tier approval workflows." color="primary" />
             <FeatureCard icon={<Star size={24} />} title="Performance Management" desc="Set OKRs, track KPIs, and conduct comprehensive 360-degree performance reviews." color="secondary" />
-            <FeatureCard icon={<Globe size={24} />} title="Executive Analytics" desc="Real-time dashboards providing deep organizational insights and workforce metrics." color="accent" />
           </div>
         </div>
       </section>

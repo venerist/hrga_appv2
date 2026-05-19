@@ -1,6 +1,6 @@
 'use client'
 import { useState, useCallback, useRef } from 'react'
-import * as XLSX from 'xlsx'
+import * as XLSX from 'xlsx-js-style'
 import { attendanceService } from '@/services/attendance.service'
 import { MetricCard, PageHeader, StatusBadge, EmptyState } from '@/components/ui'
 import type { Absensi, AbsensiStatus, RawFingerprintRecord } from '@/types/attendance.types'

@@ -4,16 +4,16 @@ import { PageHeader } from '@/components/ui'
 import { Shield, Check, X, Users, ChevronRight, Save, GripVertical } from 'lucide-react'
 
 const initialRoles = ['Super Admin', 'HR Director', 'HR Manager', 'HR Staff', 'Payroll Staff', 'Supervisor', 'Employee']
-const modules = ['Dashboard', 'Payroll', 'Rekrutmen', 'Cuti & Izin', 'KPI', 'General Affairs', 'Analytics', 'Employees', 'Settings']
+const modules = ['Dashboard', 'Rekrutmen', 'Cuti & Izin', 'KPI', 'General Affairs', 'Employees', 'Settings']
 
 const initialMatrix: Record<string, boolean[]> = {
-  'Super Admin':   [true, true, true, true, true, true, true, true, true],
-  'HR Director':   [true, true, true, true, true, true, true, true, false],
-  'HR Manager':    [true, true, true, true, true, true, true, true, false],
-  'HR Staff':      [true, false, true, true, true, false, false, true, false],
-  'Payroll Staff': [true, true, false, false, false, false, false, true, false],
-  'Supervisor':    [true, false, false, true, true, false, true, false, false],
-  'Employee':      [true, false, false, true, false, false, false, false, false],
+  'Super Admin':   [true, true, true, true, true, true, true],
+  'HR Director':   [true, true, true, true, true, true, false],
+  'HR Manager':    [true, true, true, true, true, true, false],
+  'HR Staff':      [true, true, true, true, false, true, false],
+  'Payroll Staff': [true, false, false, false, false, true, false],
+  'Supervisor':    [true, false, true, true, false, false, false],
+  'Employee':      [true, false, true, false, false, false, false],
 }
 
 const roleColors: Record<string, string> = {

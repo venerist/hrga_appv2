@@ -74,8 +74,9 @@ export const attendanceRepository = {
   },
 
   async getSummaryByMonthYear(month: number, year: number): Promise<AttendanceSummary[]> {
+    const lastDay = new Date(year, month, 0).getDate()
     const start = `${year}-${String(month).padStart(2, '0')}-01`
-    const end = `${year}-${String(month).padStart(2, '0')}-31`
+    const end = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
     const { data, error } = await supabase
       .from('attendance_summary')
@@ -109,8 +110,9 @@ export const attendanceRepository = {
     const attendance_date = records[0].attendance_date
     const year = new Date(attendance_date).getFullYear()
     const month = new Date(attendance_date).getMonth() + 1
+    const lastDay = new Date(year, month, 0).getDate()
     const start = `${year}-${String(month).padStart(2, '0')}-01`
-    const end = `${year}-${String(month).padStart(2, '0')}-31`
+    const end = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
     const { error: deleteError } = await supabase
       .from('attendance_summary')
@@ -144,8 +146,9 @@ export const attendanceRepository = {
   },
 
   async getOverridesByMonthYear(month: number, year: number): Promise<AttendanceOverride[]> {
+    const lastDay = new Date(year, month, 0).getDate()
     const start = `${year}-${String(month).padStart(2, '0')}-01`
-    const end = `${year}-${String(month).padStart(2, '0')}-31`
+    const end = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
     const { data, error } = await supabase
       .from('attendance_overrides')

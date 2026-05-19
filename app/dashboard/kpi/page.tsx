@@ -5,6 +5,7 @@ import { MetricCard, PageHeader, StatusBadge, EmptyState, LoadingSpinner } from 
 import type { Kpi } from '@/types/kpi.types'
 import { KPI_PREDIKAT_BADGE } from '@/types/kpi.types'
 import { Plus, X, Trash2 } from 'lucide-react'
+import { ExportExcelButton } from '@/components/ui/ExportExcelButton'
 
 export default function KpiPage() {
   const [rows, setRows] = useState<Kpi[]>([])
@@ -29,7 +30,12 @@ export default function KpiPage() {
   return (
     <div className="space-y-6">
       <PageHeader icon="⭐" title="Penilaian KPI" subtitle="Evaluasi kinerja karyawan berdasarkan target & realisasi"
-        action={<button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-semibold backdrop-blur transition-all cursor-pointer">{showForm ? <><X size={15} /> Tutup</> : <><Plus size={15} /> Input KPI</>}</button>} />
+        action={
+          <div className="flex items-center gap-2">
+            <ExportExcelButton data={rows} filename="Laporan_KPI_Karyawan" sheetName="KPI" className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur" />
+            <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-semibold backdrop-blur transition-all cursor-pointer">{showForm ? <><X size={15} /> Tutup</> : <><Plus size={15} /> Input KPI</>}</button>
+          </div>
+        } />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard label="Total Penilaian" value={stats.total} icon="📋" />

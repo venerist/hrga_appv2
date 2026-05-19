@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { dashboardService, type DashboardStats, type TopTerlambat, type TopAbsen } from '@/services/dashboard.service'
 import { MetricCard, PageHeader, LoadingSpinner } from '@/components/ui'
 import { Upload } from 'lucide-react'
@@ -27,14 +28,41 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader icon="🏠" title="Dashboard" subtitle={`Ringkasan HRGA — ${stats?.periodeLabel}`} />
+      <PageHeader 
+        icon="🏠" 
+        title="Dashboard" 
+        subtitle={`Ringkasan HRGA — ${stats?.periodeLabel}`} 
+        action={
+          <div className="flex items-center gap-2">
+            <select className="px-3.5 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-semibold backdrop-blur transition-all outline-none border-0 cursor-pointer">
+              <option className="text-dark" value="">Pilih Periode Bulan</option>
+              <option className="text-dark" value="2026-05">Mei 2026</option>
+              <option className="text-dark" value="2026-04">April 2026</option>
+            </select>
+            <select className="px-3.5 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-semibold backdrop-blur transition-all outline-none border-0 cursor-pointer">
+              <option className="text-dark" value="">Pilih Departemen</option>
+              <option className="text-dark" value="it">IT & Engineering</option>
+              <option className="text-dark" value="hr">HR & GA</option>
+              <option className="text-dark" value="finance">Finance</option>
+            </select>
+          </div>
+        }
+      />
 
       {/* Module Counts */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard label="Rekrutmen" value={stats?.rekrutmen ?? 0} icon="🎯" />
-        <MetricCard label="Pengajuan Cuti" value={stats?.cuti ?? 0} icon="📅" />
-        <MetricCard label="Data KPI" value={stats?.kpi ?? 0} icon="⭐" />
-        <MetricCard label="Tiket GA" value={stats?.ga ?? 0} icon="🔧" />
+        <Link href="/dashboard/rekrutmen" className="block focus:outline-none">
+          <MetricCard label="Rekrutmen" value={stats?.rekrutmen ?? 0} icon="🎯" sub="Kandidat Aktif" />
+        </Link>
+        <Link href="/dashboard/cuti" className="block focus:outline-none">
+          <MetricCard label="Pengajuan Cuti" value={stats?.cuti ?? 0} icon="📅" sub="Menunggu Persetujuan" />
+        </Link>
+        <Link href="/dashboard/kpi" className="block focus:outline-none">
+          <MetricCard label="Data KPI" value={stats?.kpi ?? 0} icon="⭐" sub="Evaluasi Selesai" />
+        </Link>
+        <Link href="/dashboard/ga" className="block focus:outline-none">
+          <MetricCard label="Tiket GA" value={stats?.ga ?? 0} icon="🔧" sub="Open Tickets" />
+        </Link>
       </div>
 
       {stats?.totalKaryawan ? (

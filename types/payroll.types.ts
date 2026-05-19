@@ -15,10 +15,13 @@ export interface PayrollDetail {
   base_salary: number
   attendance_deduction: number
   overtime_pay: number
+  reimbursement: number
   bpjs: number
   tax_pph21: number
   net_salary: number
   created_at: string
+  employee_name?: string
+  employee_position?: string
 }
 
 export interface PayrollSetting {

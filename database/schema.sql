@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS attendance_raw (
 CREATE TABLE IF NOT EXISTS attendance_summary (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   employee_nik TEXT NOT NULL,
-  date DATE NOT NULL,
+  attendance_date DATE NOT NULL,
   status TEXT NOT NULL DEFAULT 'Absent',
   late_minutes INTEGER NOT NULL DEFAULT 0,
   overtime_minutes INTEGER NOT NULL DEFAULT 0,
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS attendance_summary (
   check_in TIMESTAMPTZ,
   check_out TIMESTAMPTZ,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (employee_nik, date)
+  UNIQUE (employee_nik, attendance_date)
 );
 
 -- Attendance overrides created from approved leave requests
@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS leave_requests (
 CREATE TABLE IF NOT EXISTS attendance_overrides (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   employee_nik TEXT NOT NULL,
-  date DATE NOT NULL,
+  attendance_date DATE NOT NULL,
   leave_request_id UUID REFERENCES leave_requests(id) ON DELETE SET NULL,
   old_status TEXT,
   new_status TEXT NOT NULL,
@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS absensi (
 CREATE INDEX IF NOT EXISTS idx_attendance_raw_nik ON attendance_raw(employee_nik);
 CREATE INDEX IF NOT EXISTS idx_attendance_raw_date ON attendance_raw(attendance_date);
 CREATE INDEX IF NOT EXISTS idx_attendance_summary_nik ON attendance_summary(employee_nik);
-CREATE INDEX IF NOT EXISTS idx_attendance_summary_date ON attendance_summary(date);
+CREATE INDEX IF NOT EXISTS idx_attendance_summary_date ON attendance_summary(attendance_date);
 CREATE INDEX IF NOT EXISTS idx_leave_requests_nik ON leave_requests(employee_nik);
 CREATE INDEX IF NOT EXISTS idx_leave_requests_status ON leave_requests(status);
 CREATE INDEX IF NOT EXISTS idx_payroll_periods_month_year ON payroll_periods(month, year);

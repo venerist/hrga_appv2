@@ -5,6 +5,7 @@ import { MetricCard, PageHeader, StatusBadge, EmptyState, LoadingSpinner } from 
 import type { Ga, GaStatus } from '@/types/ga.types'
 import { GA_KATEGORI_OPTIONS, GA_PRIORITAS_OPTIONS, GA_STATUS_OPTIONS, GA_PRIORITAS_BADGE, GA_STATUS_BADGE } from '@/types/ga.types'
 import { Plus, X, Trash2 } from 'lucide-react'
+import { ExportExcelButton } from '@/components/ui/ExportExcelButton'
 
 export default function GaPage() {
   const [rows, setRows] = useState<Ga[]>([])
@@ -28,7 +29,12 @@ export default function GaPage() {
   return (
     <div className="space-y-6">
       <PageHeader icon="🔧" title="General Affairs" subtitle="Log permintaan & pemeliharaan aset kantor"
-        action={<button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-semibold backdrop-blur transition-all cursor-pointer">{showForm ? <><X size={15} /> Tutup</> : <><Plus size={15} /> Buat Tiket</>}</button>} />
+        action={
+          <div className="flex items-center gap-2">
+            <ExportExcelButton data={rows} filename="Laporan_Tiket_GA" sheetName="General Affairs" className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur" />
+            <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-semibold backdrop-blur transition-all cursor-pointer">{showForm ? <><X size={15} /> Tutup</> : <><Plus size={15} /> Buat Tiket</>}</button>
+          </div>
+        } />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <MetricCard label="Total Tiket" value={stats.total} icon="🎫" />

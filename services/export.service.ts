@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx'
+import * as XLSX from 'xlsx-js-style'
 import { attendanceRepository } from '@/repositories/attendance.repository'
 import { employeeRepository } from '@/repositories/employee.repository'
 import type { AttendanceSummary } from '@/types/attendance.types'
